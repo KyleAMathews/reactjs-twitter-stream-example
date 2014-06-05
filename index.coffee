@@ -8,7 +8,7 @@ T = new Twit
   access_token: process.env.ACCESS_TOKEN
   access_token_secret: process.env.ACCESS_TOKEN_SECRET
 
-server = Hapi.createServer '0.0.0.0', 8080, {}
+server = Hapi.createServer '0.0.0.0', process.env.PORT || 8080, {}
 
 server.route
     method: 'GET',
