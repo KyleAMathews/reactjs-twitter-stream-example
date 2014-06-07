@@ -19,20 +19,37 @@ server.route
         listing: false
         index: true
 
+ts =
+  filter: ''
+  stream: null
+  changeStream: (filter) =>
+    ts.filter = filter
+
+    # Inform all listeners that the filter changed.
+    server.websocket.emit('newFilter', ts.filter)
+
+    # Kill old streamer.
+    if ts.stream?
+      old = ts.stream
+      old.removeAllListeners()
+      old.stop (a,b,c) -> console.log 'stop', a,b,c
+
+    # Create new stream with new filter.
+    ts.stream = T.stream('statuses/filter', track: filter)
+    ts.stream.on 'tweet', (tweet) ->
+      server.websocket.emit 'tweet', tweet
+
 # Start the server
 server.start ->
   console.log "Hapi server started at " + server.info.uri
   server.websocket = SocketIO.listen server.listener, log: false
 
-  context =
-    filter: ''
-    stream: null
   server.websocket.on 'connection', (socket) ->
     # Emit to clients new clients count.
     server.websocket.emit 'clientsCount', server.websocket.engine.clientsCount
 
     # Send to new client what the current filter is if any.
-    socket.emit 'newFilter', context.filter
+    socket.emit 'newFilter', ts.filter
 
     # When the client disconnects, send to remaining clients the new clients count.
     socket.on 'disconnect', ->
@@ -40,17 +57,5 @@ server.start ->
 
     # Client sent a new filter.
     socket.on 'newFilter', (filter) ->
-      context.filter = filter
-
-      # Inform all listeners that the filter changed.
-      server.websocket.emit('newFilter', filter)
-
-      # Stop the active stream (if there is one).
-      if context.stream?
-        old = context.stream
-        old.stop()
-
       # Create new twitter stream with the new filter.
-      context.stream = T.stream('statuses/filter', track: filter)
-      context.stream.on 'tweet', (tweet) ->
-        server.websocket.emit 'tweet', tweet
+      ts.changeStream(filter)

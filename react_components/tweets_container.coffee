@@ -1,13 +1,16 @@
 # @cjsx React.DOM
 
 React = require 'react'
-Tweet = require './tweet'
+Tweets = require './tweets'
 
 module.exports = React.createClass
   getInitialState: ->
+    @lastRender = 0
+
     return {
       text: ''
       tweets: []
+      following: ''
       clientsCount: 0
     }
 
@@ -40,11 +43,8 @@ module.exports = React.createClass
       tweets: []
 
   render: ->
-    tweets = @state.tweets.map (tweet) ->
-      <Tweet key={tweet.id} tweet={tweet} />
-
-    if @state.following? and @state.following isnt ""
-      following = <h2>Streaming tweets matching \"{@state.following}\" to 
+    if @state.tweets.length > 0
+      following = <h2>Streaming tweets matching "{@state.following}" to 
       {@state.clientsCount} client(s)</h2>
 
     return (
@@ -56,6 +56,6 @@ module.exports = React.createClass
           <button>Follow</button>
         </form>
         {following}
-        {tweets}
+        <Tweets tweets={@state.tweets} following={@state.following}></Tweets>
       </div>
     )
